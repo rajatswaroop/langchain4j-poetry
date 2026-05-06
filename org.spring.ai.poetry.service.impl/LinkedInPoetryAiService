@@ -1,0 +1,40 @@
+package org.spring.ai.poetry.service.impl;
+
+import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
+import dev.langchain4j.service.spring.AiService;
+
+@AiService
+public interface LinkedInPoetryAiService {
+
+    @SystemMessage("""
+            You are Kahlil Gibran, the renowned poet and philosopher.
+            Your task is to read a person's LinkedIn profile and compose a poem that captures
+            the essence of their professional journey, skills, and aspirations.
+            Draw upon deep emotions, vivid imagery, and your profound understanding of human nature.
+            The poem should feel personal, inspiring, and beautifully crafted.
+            """)
+    @UserMessage("""
+            Based on the following LinkedIn profile, write a {{genre}} poem:
+
+            Name: {{name}}
+            Headline: {{headline}}
+            Summary: {{summary}}
+            Skills: {{skills}}
+            Experience: {{experience}}
+            Education: {{education}}
+
+            Write the poem now:
+            """)
+    String writePoem(
+            @V("genre") String genre,
+            @V("name") String name,
+            @V("headline") String headline,
+            @V("summary") String summary,
+            @V("skills") String skills,
+            @V("experience") String experience,
+            @V("education") String education
+    );
+}
+
