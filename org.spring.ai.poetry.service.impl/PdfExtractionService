@@ -1,0 +1,110 @@
+package org.spring.ai.poetry.service.impl;
+
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.spring.ai.poetry.model.LinkedInProfile;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+
+@Service
+public class PdfExtractionService {
+
+    /**
+     * Extracts raw text from the uploaded PDF using PDFBox,
+     * then parses it into a LinkedInProfile record.
+     */
+    public LinkedInProfile extract(MultipartFile file) throws IOException {
+        String rawText = extractRawText(file);
+        return parseProfile(rawText);
+    }
+
+    private String extractRawText(MultipartFile file) throws IOException {
+        try (PDDocument document = Loader.loadPDF(file.getBytes())) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            return stripper.getText(document);
+        }
+    }
+
+    /**
+     * Parses the raw PDF text into structured profile fields.
+     * LinkedIn PDFs follow a consistent section-based layout.
+     */
+    private LinkedInProfile parseProfile(String text) {
+        String name       = extractSection(text, null,          "Headline|About|Experience|Education|Skills");
+        String headline   = extractSection(text, "Headline",    "About|Experience|Education|Skills");
+        String summary    = extractSection(text, "About",       "Experience|Education|Skills");
+        String experience = extractSection(text, "Experience",  "Education|Skills|Certifications|Languages");
+        String education  = extractSection(text, "Education",   "Skills|Certifications|Languages|Interests");
+        String skills     = extractSection(text, "Skills",      "Certifications|Languages|Interests|$");
+
+        // Fallback: if sections not found, pass full text as summary so AI still has context
+        if (summary.isBlank() && experience.isBlank()) {
+            summary = text.length() > 3000 ? text.substring(0, 3000) : text;
+        }
+
+        return new LinkedInProfile(
+                name.trim(),
+                headline.trim(),
+                summary.trim(),
+                skills.trim(),
+                experience.trim(),
+                education.trim()
+        );
+    }
+
+    /**
+     * Extracts text between a start section header and any of the end section headers.
+     * If startSection is null, captures text before the first end section (used for name).
+     */
+    private String extractSection(String text, String startSection, String endSections) {
+        try {
+            String pattern;
+            if (startSection == null) {
+                // Name is usually the first 1-2 lines before any section header
+                String[] lines = text.split("\\r?\\n");
+                StringBuilder name = new StringBuilder();
+                for (String line : lines) {
+                    line = line.trim();
+                    if (line.isBlank()) continue;
+                    if (line.matches("(?i)(" + endSections + ")")) break;
+                    name.append(line).append(" ");
+                    if (name.length() > 100) break; // safety cap
+                }
+                return name.toString().trim();
+            }
+
+            int start = indexOfSection(text, startSection);
+            if (start == -1) return "";
+
+            // Skip the section header line itself
+            int contentStart = text.indexOf("\n", start);
+            if (contentStart == -1) return "";
+            contentStart++;
+
+            // Find the nearest end section
+            int end = text.length();
+            for (String endSection : endSections.split("\\|")) {
+                int idx = indexOfSection(text, endSection);
+                if (idx > contentStart && idx < end) {
+                    end = idx;
+                }
+            }
+
+            return text.substring(contentStart, end).trim();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private int indexOfSection(String text, String sectionName) {
+        // Match section headers like "Experience\n" or "Experience " at line start
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile(
+                "(?m)^" + sectionName + "\\s*$", java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Matcher m = p.matcher(text);
+        return m.find() ? m.start() : -1;
+    }
+}
+
