@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: SpringLLM
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: key
+        model-name: gpt-4.1-mini
+      temperature: 0.9       # Higher = more creative poetry
+      max-tokens: 1000
+
+server:
+  port: 8080
