@@ -1,0 +1,45 @@
+package org.spring.ai.poetry.service.impl;
+
+import org.spring.ai.poetry.model.LinkedInProfile;
+import org.spring.ai.poetry.model.PoetryResponse;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+
+@Service
+public class PoetryService {
+
+    private final PdfExtractionService pdfExtractionService;
+    private final LinkedInPoetryAiService aiService;
+
+    public PoetryService(PdfExtractionService pdfExtractionService,
+                         LinkedInPoetryAiService aiService) {
+        this.pdfExtractionService = pdfExtractionService;
+        this.aiService = aiService;
+    }
+
+    public PoetryResponse generateFromPdf(MultipartFile file, String genre) throws IOException {
+        // Step 1: Extract structured profile from PDF
+        LinkedInProfile profile = pdfExtractionService.extract(file);
+
+        // Step 2: Send to LangChain4j AI service with SystemMessage persona
+        String poem = aiService.writePoem(
+                genre,
+                profile.name(),
+                profile.headline(),
+                profile.summary(),
+                profile.skills(),
+                profile.experience(),
+                profile.education()
+        );
+
+        // Step 3: Return combined response
+        return new PoetryResponse(
+                profile.name(),     // Title: person's name
+                poem,               // Content: the generated poem
+                genre               // Theme: the requested genre
+        );
+    }
+}
+
