@@ -1,0 +1,10 @@
+package org.spring.ai.poetry.model;
+
+public record LinkedInProfile(
+        String name,
+        String headline,
+        String summary,
+        String skills,
+        String experience,
+        String education
+) {}
