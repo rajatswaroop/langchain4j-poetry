@@ -1,0 +1,8 @@
+package org.spring.ai.poetry.model;
+
+public record PoetryResponse(
+        String title,
+        String content,
+        String themeDerivedFromProfile) {
+}
+//immutable objects are created using the record keyword, which automatically generates a constructor, getters, equals(), hashCode(), and toString() methods.
