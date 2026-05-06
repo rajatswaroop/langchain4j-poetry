@@ -1,0 +1,38 @@
+package org.spring.ai.poetry.controller;
+
+import org.spring.ai.poetry.model.PoetryResponse;
+import org.spring.ai.poetry.service.impl.PoetryService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+
+@RestController
+@RequestMapping("/poetry")
+public class PoetryController {
+
+    private final PoetryService poetryService;
+
+    public PoetryController(PoetryService poetryService) {
+        this.poetryService = poetryService;
+    }
+
+    /**
+     * POST /poetry/generate
+     * Upload LinkedIn PDF + choose poetry genre
+     *
+     * Form params:
+     *   file  - LinkedIn PDF export
+     *   genre - e.g. "haiku", "sonnet", "free verse", "ode"
+     */
+    @PostMapping(value = "/generate", consumes = "multipart/form-data")
+    public ResponseEntity<PoetryResponse> generate(
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(value = "genre", defaultValue = "free verse") String genre
+    ) throws IOException {
+        PoetryResponse response = poetryService.generateFromPdf(file, genre);
+        return ResponseEntity.ok(response);
+    }
+}
+
